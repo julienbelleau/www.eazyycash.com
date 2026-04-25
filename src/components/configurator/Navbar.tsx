@@ -1,17 +1,33 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { CloudCheck, Layers3, Save, Share2, SquareKanban } from "lucide-react";
+import { CloudCheck, FolderOpen, Layers3, Save, SquareKanban } from "lucide-react";
 import { useConfigurator } from "@/lib/store";
+import { saveProject } from "@/lib/storage";
+import { useEffect, useState } from "react";
 
 export function Navbar() {
-  const project = useConfigurator((s) => s.projectName);
-  const client = useConfigurator((s) => s.client);
+  const project = useConfigurator((s) => s.project);
+  const setUI = useConfigurator((s) => s.setUI);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Debounced auto-save
+  useEffect(() => {
+    const id = setTimeout(() => {
+      saveProject(project);
+      setSavedAt(Date.now());
+    }, 800);
+    return () => clearTimeout(id);
+  }, [project]);
+
+  const onManualSave = () => {
+    saveProject(project);
+    setSavedAt(Date.now());
+  };
 
   return (
     <header className="relative z-20 border-b border-[var(--color-border)] glass">
       <div className="h-14 px-5 flex items-center gap-5">
-        {/* Brand */}
         <div className="flex items-center gap-2.5">
           <motion.div
             initial={{ rotate: -8, scale: 0.9 }}
@@ -31,27 +47,40 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Project pill */}
         <div className="hidden md:flex items-center gap-2 ml-3 px-3 h-9 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60">
           <SquareKanban className="size-3.5 text-[var(--color-fg-dim)]" />
-          <div className="text-[12.5px] font-medium">{project}</div>
+          <div className="text-[12.5px] font-medium truncate max-w-[280px]">{project.name}</div>
           <span className="mx-1 text-[var(--color-fg-dim)]">·</span>
-          <div className="text-[12px] text-[var(--color-fg-muted)]">{client}</div>
+          <div className="text-[12px] text-[var(--color-fg-muted)] truncate max-w-[200px]">{project.client}</div>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
           <div className="hidden sm:flex items-center gap-1.5 text-[11.5px] text-[var(--color-fg-muted)] mr-2">
             <CloudCheck className="size-3.5 text-[var(--color-positive)]" />
-            <span>Auto-saved</span>
+            <span>{savedAt ? `Saved ${formatRelative(savedAt)}` : "Auto-saved"}</span>
           </div>
-          <button className="btn-ghost h-9 px-3 rounded-lg flex items-center gap-1.5 text-[12.5px]">
-            <Share2 className="size-3.5" /> Share
+          <button
+            onClick={() => setUI("projectsManagerOpen", true)}
+            className="btn-ghost h-9 px-3 rounded-lg flex items-center gap-1.5 text-[12.5px]"
+          >
+            <FolderOpen className="size-3.5" /> Projects
           </button>
-          <button className="btn-primary h-9 px-3.5 rounded-lg flex items-center gap-1.5 text-[12.5px]">
-            <Save className="size-3.5" /> Save Quote
+          <button
+            onClick={onManualSave}
+            className="btn-primary h-9 px-3.5 rounded-lg flex items-center gap-1.5 text-[12.5px]"
+          >
+            <Save className="size-3.5" /> Save
           </button>
         </div>
       </div>
     </header>
   );
+}
+
+function formatRelative(ts: number) {
+  const diff = Date.now() - ts;
+  if (diff < 5000) return "just now";
+  if (diff < 60000) return `${Math.round(diff / 1000)}s ago`;
+  if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`;
+  return new Date(ts).toLocaleTimeString();
 }

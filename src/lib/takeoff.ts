@@ -1,104 +1,151 @@
 import {
   CARRIER_PRICE,
+  CONFIG_PRICE_FACTOR,
+  ENGINEERING_FEE,
+  FAMILY_PRICE_PER_SQFT,
+  FINISH_PRICE_FACTOR,
   HARDWARE_PACK_PER_SYSTEM,
+  MODELS,
   OPERATION_PRICE_FACTOR,
-  PANEL_PRICE_PER_SQFT,
   SEAL_PRICE_PER_PANEL,
-  SERIES,
-  SERIES_PRICE_MULTIPLIER,
+  TRACK_DEFAULT_PRICE_PER_FT,
   TRACK_PRICE_PER_FT,
 } from "./moderco";
-import type { ConfiguratorState } from "./store";
+import type { Project, Wall } from "./store";
 
-export interface Takeoff {
+export interface WallTakeoff {
+  wallId: string;
+  wallName: string;
+  modelName: string;
   panelCount: number;
   panelWidthIn: number;
   panelHeightFt: number;
   trackLengthFt: number;
+  trackOption: string;
   carrierCount: number;
   totalAreaSqft: number;
   estimatedWeightLb: number;
+  weightPsf: number;
   stcRange: [number, number];
   stackDepthFt: number;
   finish: string;
+  operation: string;
   cost: {
     panels: number;
     track: number;
     carriers: number;
     seals: number;
     hardware: number;
+    engineering: number;
     operationUplift: number;
     subtotal: number;
     total: number;
   };
 }
 
-export function computeTakeoff(state: ConfiguratorState): Takeoff {
-  const series = SERIES[state.series];
-  const widthIn = state.room.widthFt * 12;
-  const heightFt = Math.min(state.room.heightFt, series.maxHeightIn / 12);
+export function computeWallTakeoff(wall: Wall): WallTakeoff {
+  const model = MODELS[wall.modelId];
+  const widthIn = wall.room.widthFt * 12;
+  const heightFt = Math.min(wall.room.heightFt, model.maxHeightIn / 12);
+  const panelThicknessFt = model.thicknessIn / 12;
 
-  // Panel count: how many panels of width to span the opening.
-  const rawCount = widthIn / state.panelWidthIn;
+  // panel count
+  const rawCount = widthIn / wall.panelWidthIn;
   let panelCount = Math.ceil(rawCount);
-  // Paired configs need an even number; continuously hinged is one continuous train.
-  if (state.config === "paired" && panelCount % 2 === 1) panelCount += 1;
+  if (model.configuration === "paired" && panelCount % 2 === 1) panelCount += 1;
 
-  // Stack: track length includes a stack pocket on selected side(s).
-  const panelThicknessFt = series.panelThicknessIn / 12;
+  // stack runout (visual + track length)
   const stackThicknessFt = panelCount * panelThicknessFt;
-  const stackDepthFt = stackThicknessFt + 1.0; // pocket clearance
+  const stackDepthFt = stackThicknessFt + 1.0;
+  const stackRunFt =
+    wall.stack === "center" ? stackThicknessFt / 2 : stackThicknessFt;
+  const trackLengthFt = wall.room.widthFt + stackRunFt + 1.5;
 
-  // Carriers: paired = 1 per pair, individual = 1 per panel, hinged = 2 (lead + trail).
+  // carriers
   const carrierCount =
-    state.config === "paired"
+    model.configuration === "paired"
       ? Math.ceil(panelCount / 2)
-      : state.config === "continuously-hinged"
+      : model.configuration === "continuously-hinged"
         ? 2
         : panelCount;
 
-  // Track length = opening + stack runout (depends on stack style).
-  const stackRunFt =
-    state.stack === "center" ? stackThicknessFt / 2 : stackThicknessFt;
-  const trackLengthFt = state.room.widthFt + stackRunFt + 1.5;
+  // area & weight (mid-of-range psf)
+  const weightPsf = (model.weightPsfRange[0] + model.weightPsfRange[1]) / 2;
+  const totalAreaSqft = wall.room.widthFt * heightFt;
+  const estimatedWeightLb = totalAreaSqft * weightPsf;
 
-  // Area + weight.
-  const totalAreaSqft = state.room.widthFt * heightFt;
-  const estimatedWeightLb = totalAreaSqft * series.weightPsf;
+  // pricing
+  const familyPpsf = FAMILY_PRICE_PER_SQFT[model.family];
+  const cfgFactor = CONFIG_PRICE_FACTOR[model.configuration];
+  const opFactor = OPERATION_PRICE_FACTOR[model.operation];
+  const finishFactor = FINISH_PRICE_FACTOR[wall.finish] ?? 1;
 
-  // Costs.
-  const seriesMult = SERIES_PRICE_MULTIPLIER[state.series];
-  const opMult = OPERATION_PRICE_FACTOR[state.operation];
-
-  const panelCost = totalAreaSqft * PANEL_PRICE_PER_SQFT * seriesMult;
-  const trackCost = trackLengthFt * TRACK_PRICE_PER_FT;
+  const panelCost = totalAreaSqft * familyPpsf * cfgFactor * finishFactor;
+  const trackPpf = TRACK_PRICE_PER_FT[wall.trackOption] ?? TRACK_DEFAULT_PRICE_PER_FT;
+  const trackCost = trackLengthFt * trackPpf;
   const carrierCost = carrierCount * CARRIER_PRICE;
   const sealCost = panelCount * SEAL_PRICE_PER_PANEL;
   const hardwareCost = HARDWARE_PACK_PER_SYSTEM;
-  const subtotal = panelCost + trackCost + carrierCost + sealCost + hardwareCost;
-  const operationUplift = subtotal * (opMult - 1);
+  const engineeringCost = ENGINEERING_FEE;
+
+  const subtotal =
+    panelCost + trackCost + carrierCost + sealCost + hardwareCost + engineeringCost;
+  const operationUplift = subtotal * (opFactor - 1);
   const total = subtotal + operationUplift;
 
   return {
+    wallId: wall.id,
+    wallName: wall.name,
+    modelName: model.name,
     panelCount,
-    panelWidthIn: state.panelWidthIn,
+    panelWidthIn: wall.panelWidthIn,
     panelHeightFt: heightFt,
     trackLengthFt,
+    trackOption: wall.trackOption,
     carrierCount,
     totalAreaSqft,
     estimatedWeightLb,
-    stcRange: series.stcRange,
+    weightPsf,
+    stcRange: model.stcRange,
     stackDepthFt,
-    finish: state.finish,
+    finish: wall.finish,
+    operation: model.operation,
     cost: {
       panels: panelCost,
       track: trackCost,
       carriers: carrierCost,
       seals: sealCost,
       hardware: hardwareCost,
+      engineering: engineeringCost,
       operationUplift,
       subtotal,
       total,
     },
   };
+}
+
+export interface ProjectTakeoff {
+  walls: WallTakeoff[];
+  totals: {
+    panelCount: number;
+    trackLengthFt: number;
+    totalAreaSqft: number;
+    estimatedWeightLb: number;
+    cost: number;
+  };
+}
+
+export function computeProjectTakeoff(project: Project): ProjectTakeoff {
+  const walls = project.walls.map(computeWallTakeoff);
+  const totals = walls.reduce(
+    (acc, w) => ({
+      panelCount: acc.panelCount + w.panelCount,
+      trackLengthFt: acc.trackLengthFt + w.trackLengthFt,
+      totalAreaSqft: acc.totalAreaSqft + w.totalAreaSqft,
+      estimatedWeightLb: acc.estimatedWeightLb + w.estimatedWeightLb,
+      cost: acc.cost + w.cost.total,
+    }),
+    { panelCount: 0, trackLengthFt: 0, totalAreaSqft: 0, estimatedWeightLb: 0, cost: 0 },
+  );
+  return { walls, totals };
 }

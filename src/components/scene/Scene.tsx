@@ -18,12 +18,15 @@ import { PanelTrain } from "./PanelTrain";
 import { DimensionLabels } from "./DimensionLabels";
 import { CameraRig } from "./CameraRig";
 
-export function Scene() {
+interface SceneProps {
+  onCanvasReady?: (gl: THREE.WebGLRenderer) => void;
+}
+
+export function Scene({ onCanvasReady }: SceneProps) {
   const showGrid = useConfigurator((s) => s.showGrid);
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
   useEffect(() => {
-    // Faster initial damping settle.
     controlsRef.current?.update();
   }, []);
 
@@ -35,7 +38,9 @@ export function Scene() {
         antialias: true,
         toneMapping: THREE.ACESFilmicToneMapping,
         toneMappingExposure: 1.05,
+        preserveDrawingBuffer: true,
       }}
+      onCreated={({ gl }) => onCanvasReady?.(gl)}
       className="!h-full !w-full"
     >
       <color attach="background" args={["#0e1116"]} />
@@ -46,8 +51,6 @@ export function Scene() {
 
       <Suspense fallback={null}>
         <Environment preset="warehouse" environmentIntensity={0.55} />
-
-        {/* Key light */}
         <directionalLight
           position={[14, 18, 10]}
           intensity={1.6}

@@ -1,18 +1,17 @@
 "use client";
 
-import { useConfigurator } from "@/lib/store";
+import { useConfigurator, getActiveWall } from "@/lib/store";
 import * as THREE from "three";
 import { useMemo } from "react";
 
 export function Room() {
-  const room = useConfigurator((s) => s.room);
+  const wall = useConfigurator(getActiveWall);
+  const room = wall.room;
 
-  const { w, d, h } = useMemo(
-    () => ({ w: room.widthFt, d: room.depthFt, h: room.heightFt }),
-    [room.widthFt, room.depthFt, room.heightFt],
-  );
+  const w = room.widthFt;
+  const d = room.depthFt;
+  const h = room.heightFt;
 
-  // Floor — light wood/concrete look.
   const floorMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -23,7 +22,6 @@ export function Room() {
     [],
   );
 
-  // Side walls — warm off-white plaster.
   const wallMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -35,7 +33,6 @@ export function Room() {
     [],
   );
 
-  // Ceiling — slightly cooler, less reflective.
   const ceilMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -46,7 +43,6 @@ export function Room() {
     [],
   );
 
-  // Baseboard accent.
   const baseMat = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -59,22 +55,10 @@ export function Room() {
 
   return (
     <group>
-      {/* Floor */}
-      <mesh
-        receiveShadow
-        position={[0, 0, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        material={floorMat}
-      >
+      <mesh receiveShadow position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} material={floorMat}>
         <planeGeometry args={[w + 16, d + 16]} />
       </mesh>
-
-      {/* Floor plank pattern overlay */}
-      <mesh
-        position={[0, 0.005, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-      >
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[w, d]} />
         <meshStandardMaterial
           color="#b39e84"
@@ -85,55 +69,22 @@ export function Room() {
         />
       </mesh>
 
-      {/* Back wall */}
-      <mesh
-        receiveShadow
-        position={[0, h / 2, -d / 2]}
-        material={wallMat}
-      >
+      <mesh receiveShadow position={[0, h / 2, -d / 2]} material={wallMat}>
         <planeGeometry args={[w, h]} />
       </mesh>
-
-      {/* Front wall (clipped — open viewing) */}
-      <mesh
-        position={[0, h / 2, d / 2]}
-        rotation={[0, Math.PI, 0]}
-        material={wallMat}
-      >
+      <mesh position={[0, h / 2, d / 2]} rotation={[0, Math.PI, 0]} material={wallMat}>
         <planeGeometry args={[w, h]} />
       </mesh>
-
-      {/* Left wall */}
-      <mesh
-        receiveShadow
-        position={[-w / 2, h / 2, 0]}
-        rotation={[0, Math.PI / 2, 0]}
-        material={wallMat}
-      >
+      <mesh receiveShadow position={[-w / 2, h / 2, 0]} rotation={[0, Math.PI / 2, 0]} material={wallMat}>
         <planeGeometry args={[d, h]} />
       </mesh>
-
-      {/* Right wall */}
-      <mesh
-        receiveShadow
-        position={[w / 2, h / 2, 0]}
-        rotation={[0, -Math.PI / 2, 0]}
-        material={wallMat}
-      >
+      <mesh receiveShadow position={[w / 2, h / 2, 0]} rotation={[0, -Math.PI / 2, 0]} material={wallMat}>
         <planeGeometry args={[d, h]} />
       </mesh>
-
-      {/* Ceiling */}
-      <mesh
-        receiveShadow
-        position={[0, h, 0]}
-        rotation={[Math.PI / 2, 0, 0]}
-        material={ceilMat}
-      >
+      <mesh receiveShadow position={[0, h, 0]} rotation={[Math.PI / 2, 0, 0]} material={ceilMat}>
         <planeGeometry args={[w, d]} />
       </mesh>
 
-      {/* Baseboards */}
       <mesh position={[0, 0.25, -d / 2 + 0.02]} material={baseMat} castShadow>
         <boxGeometry args={[w, 0.5, 0.04]} />
       </mesh>
@@ -144,7 +95,6 @@ export function Room() {
         <boxGeometry args={[0.04, 0.5, d]} />
       </mesh>
 
-      {/* Soft ceiling cove light */}
       <pointLight
         position={[0, h - 0.4, 0]}
         intensity={0.6}
