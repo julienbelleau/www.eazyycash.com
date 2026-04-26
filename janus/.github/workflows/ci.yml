@@ -1,0 +1,95 @@
+name: janus-ci
+
+on:
+  push:
+    paths:
+      - "janus/**"
+      - "tests/**"
+      - "scripts/**"
+      - "alembic/**"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "janus/**"
+      - "tests/**"
+      - "scripts/**"
+      - "alembic/**"
+      - "pyproject.toml"
+      - "poetry.lock"
+      - ".github/workflows/ci.yml"
+
+defaults:
+  run:
+    working-directory: janus
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      timescaledb:
+        image: timescale/timescaledb:2.15.0-pg16
+        env:
+          POSTGRES_DB: janus
+          POSTGRES_USER: janus
+          POSTGRES_PASSWORD: janus_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U janus -d janus"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+      redis:
+        image: redis:7.2-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      JANUS_ENV: dev
+      JANUS_LOG_JSON: "false"
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_DB: janus
+      POSTGRES_USER: janus
+      POSTGRES_PASSWORD: janus_test
+      REDIS_HOST: localhost
+      REDIS_PORT: "6379"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: install poetry
+        run: pipx install poetry==1.8.3
+
+      - name: cache poetry venv
+        uses: actions/cache@v4
+        with:
+          path: janus/.venv
+          key: poetry-${{ runner.os }}-${{ hashFiles('janus/poetry.lock') }}
+
+      - name: install deps
+        run: poetry install --no-root --no-interaction
+
+      - name: ruff
+        run: poetry run ruff check .
+
+      - name: ruff format check
+        run: poetry run ruff format --check .
+
+      - name: mypy
+        run: poetry run mypy janus
+
+      - name: unit tests
+        run: poetry run pytest tests/unit -q --cov-fail-under=80

@@ -1,0 +1,47 @@
+# Refractory Period strategy — Phase 1 spec (config only, code lands later).
+# Thresholds expressed as defaults; the runtime layer also supports the
+# adaptive online-quantile mode (UPGRADES §1.1).
+
+cascade_detection:
+  window_minutes: 60
+  btc:
+    price_drop_pct_min: 4.0
+    liquidations_usd_min: 200_000_000
+  eth:
+    price_drop_pct_min: 6.0
+    liquidations_usd_min: 100_000_000
+  oi_drop_pct_min: 8.0
+  volume_ratio_min: 2.0          # vs 30-day SMA
+
+exhaustion_confirmation:
+  liq_velocity_pct_of_peak_max: 10
+  price_stability_window_min: 30
+  price_range_pct_max: 1.5
+  no_new_low_window_min: 30
+
+exit:
+  take_profit_retracement_pct: 50
+  oi_recovery_pct: 80
+  stop_loss_pct: -2.0
+  trailing_activate_pct: 1.5
+  trailing_distance_pct: 1.0
+  time_stop_hours: 24
+
+backtest:
+  symbols: [BTCUSDT, ETHUSDT]
+  fees_taker_pct: 0.04
+  fees_maker_pct: 0.02
+  slippage_entry_pct: 0.05
+  slippage_exit_pct: 0.02
+
+gating:
+  min_sharpe_oos: 1.5
+  min_calmar: 2.0
+  min_win_rate: 0.55
+  min_profit_factor: 1.6
+  max_drawdown_pct: 15.0
+  min_trades: 50
+
+kill:
+  sharpe_oos_below: 1.0
+  max_drawdown_above_pct: 25.0

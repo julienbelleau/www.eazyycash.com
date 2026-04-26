@@ -1,0 +1,57 @@
+# Janus — local dev stack.
+# Production deployment uses a separate compose file with backups, TLS, and resource limits.
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.15.0-pg16
+    container_name: janus-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-janus}
+      POSTGRES_USER: ${POSTGRES_USER:-janus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-janus_dev}
+      # TimescaleDB tuning for a workstation-class host. Override via .env in prod.
+      TS_TUNE_MEMORY: ${TS_TUNE_MEMORY:-4GB}
+      TS_TUNE_NUM_CPUS: ${TS_TUNE_NUM_CPUS:-4}
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=timescaledb
+      - -c
+      - max_connections=100
+      - -c
+      - timescaledb.telemetry_level=off
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - timescale_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-janus} -d ${POSTGRES_DB:-janus}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: janus-redis
+    restart: unless-stopped
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --maxmemory
+      - ${REDIS_MAXMEMORY:-512mb}
+      - --maxmemory-policy
+      - allkeys-lru
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  timescale_data:
+  redis_data:

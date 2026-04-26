@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.installed.cfg
+*.egg
+build/
+dist/
+.eggs/
+
+# Virtual envs / package managers
+.venv/
+venv/
+env/
+.python-version
+poetry.lock.bak
+
+# Tests / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mutmut-cache
+.hypothesis/
+
+# Type checkers / linters
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Secrets / runtime
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+.secrets.baseline.local
+# Override the repo-root rule that ignores .env*: the example template MUST be tracked.
+!.env.example
+
+# Data / artefacts
+data/raw/
+data/snapshots/
+data/parquet/
+*.parquet
+*.duckdb
+notebooks/scratch/
+
+# Backtest / model artefacts
+artefacts/
+mlruns/
+models/checkpoints/
+
+# Logs
+logs/
+*.log
+
+# Docker volumes (when bind-mounted)
+.docker-data/

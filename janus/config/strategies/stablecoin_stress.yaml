@@ -1,0 +1,30 @@
+# Stablecoin Stress Flow — Phase 3 spec.
+detection:
+  peg_deviation_pct_min: 0.15
+  peg_deviation_window_min: 15
+  cex_deviation_pct_min: 0.10
+  volume_ratio_min: 1.5
+
+flow_signal:
+  exchange_inflow_increase_pct_min: 30
+  pair_volume_increase_pct_min: 50
+  funding_neutral_or_positive: true
+
+entry:
+  instrument: spot                # NEVER perps — capture physical flow
+  pct_of_portfolio: 7.5
+  vol_inverse_sizing: true
+  max_delay_min_after_detection: 45
+
+exit:
+  take_profit_pct_low: 1.5
+  take_profit_pct_high: 3.0
+  stop_loss_pct: -1.0
+  time_stop_hours: 6
+
+gating:
+  min_edge_net_pct_per_trade: 0.30
+  min_win_rate: 0.60
+
+kill:
+  edge_net_pct_below: 0.20

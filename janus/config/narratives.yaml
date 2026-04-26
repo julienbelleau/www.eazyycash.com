@@ -1,0 +1,41 @@
+# Narrative → tickers mapping. Phase 0 ships a small starter set; the full
+# tagging is built up incrementally and snapshotted daily (see UPGRADES §2.4).
+#
+# Format:
+#   <narrative-slug>:
+#     description: short human-readable description
+#     tickers: list of canonical tickers (uppercase, no quote)
+#
+# Edit conservatively — every snapshot is hashed; reordering changes the hash.
+
+ai:
+  description: AI x crypto — compute marketplaces, model verification, agent infra
+  tickers: [TAO, RNDR, FET, AGIX, OCEAN, AKT, WLD, NEAR]
+
+rwa:
+  description: Real-world assets — tokenized treasuries, credit, real estate
+  tickers: [ONDO, MKR, CFG, GFI, POLYX, RIO, MPL]
+
+l2:
+  description: Ethereum L2s and rollup-related infra
+  tickers: [ARB, OP, MATIC, MNT, METIS, STRK, BLAST]
+
+depin:
+  description: Decentralized physical infrastructure networks
+  tickers: [HNT, IOT, FIL, AR, RNDR, GRT, AKT]
+
+memes:
+  description: Meme coins (high volatility, attention-driven)
+  tickers: [DOGE, SHIB, PEPE, WIF, BONK, FLOKI]
+
+defi:
+  description: DEXes, money markets, perps protocols
+  tickers: [UNI, AAVE, COMP, CRV, GMX, DYDX, SNX]
+
+gaming:
+  description: Gaming + NFT marketplaces with active dev cycles
+  tickers: [IMX, AXS, BEAM, GALA, RON]
+
+privacy:
+  description: Privacy-focused L1s and mixer infra
+  tickers: [XMR, ZEC, DASH]
