@@ -32,6 +32,25 @@ every later phase depends on.
 | Resumable backfill driver | `scripts/backfill_historical.py` | ✅ |
 | DB bootstrap | `scripts/init_db.py` | ✅ |
 
+## What's in Phase 1 (Refractory Period — partial)
+
+| Component | Module | Status |
+|-----------|--------|--------|
+| Strategy primitives (Signal, Order, Position, MarketState, ABC) | `janus/strategies/base.py` | ✅ |
+| P² online quantile estimator (UPGRADES §1.1) | `janus/features/adaptive_thresholds.py` | ✅ |
+| BOCPD with Normal-Gamma prior (UPGRADES §1.4) | `janus/features/bocpd.py` | ✅ |
+| Refractory features (liq velocity, OFI, CVD, OI, funding z) | `janus/features/refractory_features.py` | ✅ |
+| Cascade detector (adaptive thresholds + multi-asset contagion §1.3) | `janus/strategies/refractory/signals.py` | ✅ |
+| Exhaustion detector (BOCPD + OFI reversion + price stability §1.2) | `janus/strategies/refractory/signals.py` | ✅ |
+| Refractory state machine (IDLE → IN_CASCADE → IN_TRADE → COOLDOWN) | `janus/strategies/refractory/strategy.py` | ✅ |
+| Per-strategy YAML config (cascade thresholds, exits, gating) | `config/strategies/refractory.yaml` | ✅ |
+| Strategy rationale (5 questions) | `janus/strategies/refractory/RATIONALE.md` | ✅ |
+| Risk: fractional-Kelly position sizing + vol overlay (UPGRADES §R.1) | `janus/risk/position_sizing.py` | ✅ |
+| Backtest engine (event-driven, walk-forward) | — | ⏳ next |
+| Slippage model from L2 snapshots (UPGRADES §1.6) | — | ⏳ next |
+| Conformal-prediction TP intervals (UPGRADES §1.5) | — | ⏳ next |
+| 60-day paper trading harness | — | ⏳ Phase 1 gate |
+
 ---
 
 ## Quickstart
