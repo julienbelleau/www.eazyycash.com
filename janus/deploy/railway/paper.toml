@@ -1,0 +1,12 @@
+# Railway service: janus-paper
+# Long-running paper trader. One per (strategy, symbol-set) combination —
+# Railway env vars STRATEGY and SYMBOLS are read by the entrypoint.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python scripts/run_paper.py --strategies ${STRATEGY:-refractory} --symbols ${SYMBOLS:-BTCUSDT}"
+restartPolicyType = "ALWAYS"
+numReplicas = 1
+sleepApplication = false

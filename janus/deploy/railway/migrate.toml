@@ -1,0 +1,13 @@
+# Railway service: janus-migrate
+# One-shot job that runs `alembic upgrade head`. Configure as a one-off
+# (sleep after first successful run) — Railway re-runs on every redeploy
+# which is exactly what we want for schema migrations.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "alembic upgrade head"
+restartPolicyType = "NEVER"
+numReplicas = 1
+sleepApplication = true

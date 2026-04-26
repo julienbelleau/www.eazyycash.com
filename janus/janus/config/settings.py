@@ -10,9 +10,11 @@ crash at startup, not three hours into a backtest.
 
 from __future__ import annotations
 
+import os
 from enum import StrEnum
 from functools import lru_cache
 from typing import Literal
+from urllib.parse import urlparse
 
 from pydantic import Field, SecretStr, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -24,6 +26,22 @@ class Environment(StrEnum):
     LIVE = "live"
 
 
+def _parse_dsn(dsn: str) -> dict[str, str | int]:
+    """Parse a postgres:// or redis:// URL into component fields.
+
+    Railway injects DATABASE_URL / REDIS_URL on service link; we accept both
+    the classic POSTGRES_* env vars and the URL form.
+    """
+    parsed = urlparse(dsn)
+    return {
+        "host": parsed.hostname or "localhost",
+        "port": parsed.port or 5432,
+        "user": parsed.username or "",
+        "password": parsed.password or "",
+        "db": (parsed.path or "/").lstrip("/"),
+    }
+
+
 class DatabaseSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="POSTGRES_", extra="ignore")
 
@@ -32,6 +50,20 @@ class DatabaseSettings(BaseSettings):
     db: str = "janus"
     user: str = "janus"
     password: SecretStr = SecretStr("janus_dev")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _hydrate_from_url(cls, values: dict[str, object] | None) -> dict[str, object]:
+        # Railway / Heroku-style: DATABASE_URL takes precedence when present.
+        url = os.getenv("DATABASE_URL")
+        if not url:
+            return values or {}
+        parts = _parse_dsn(url)
+        # Don't override explicit POSTGRES_* values (lets dev override the URL).
+        merged = dict(values or {})
+        for k, v in parts.items():
+            merged.setdefault(k, v)
+        return merged
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -58,6 +90,23 @@ class RedisSettings(BaseSettings):
     port: int = 6379
     db: int = 0
     password: SecretStr = SecretStr("")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _hydrate_from_url(cls, values: dict[str, object] | None) -> dict[str, object]:
+        url = os.getenv("REDIS_URL")
+        if not url:
+            return values or {}
+        parts = _parse_dsn(url)
+        merged = dict(values or {})
+        for k, v in parts.items():
+            if k == "db":
+                merged.setdefault(k, int(v) if v else 0)
+            elif k == "port":
+                merged.setdefault(k, v if v else 6379)
+            else:
+                merged.setdefault(k, v)
+        return merged
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -90,6 +139,24 @@ class ObservabilitySettings(BaseSettings):
     prometheus_port: int = Field(default=9090, validation_alias="PROMETHEUS_PORT")
 
 
+class ApiSettings(BaseSettings):
+    """SaaS web API runtime config."""
+
+    model_config = SettingsConfigDict(env_prefix="JANUS_API_", extra="ignore")
+
+    # Railway injects PORT — bind to it. 8000 is the local default.
+    port: int = Field(default=8000, validation_alias="PORT")
+    host: str = "0.0.0.0"  # noqa: S104 — required for container deployments
+    workers: int = 1
+    cors_allow_origins: str = "*"   # comma-separated; tighten for prod
+    rate_limit_per_minute: int = 120
+    # Pepper used when hashing API keys; rotate by setting a new one and
+    # invalidating tokens (forces re-issuance).
+    api_key_pepper: SecretStr = SecretStr("janus_dev_pepper_change_me")
+    public_base_url: str = ""        # set by Railway: https://service.up.railway.app
+    request_id_header: str = "x-request-id"
+
+
 class Settings(BaseSettings):
     """Top-level settings aggregator. Exactly one instance per process."""
 
@@ -114,6 +181,7 @@ class Settings(BaseSettings):
     redis: RedisSettings = Field(default_factory=RedisSettings)
     binance: BinanceSettings = Field(default_factory=BinanceSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
+    api: ApiSettings = Field(default_factory=ApiSettings)
 
     enable_live_tests: bool = Field(default=False, validation_alias="JANUS_ENABLE_LIVE_TESTS")
 

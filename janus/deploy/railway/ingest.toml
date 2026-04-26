@@ -1,0 +1,13 @@
+# Railway service: janus-ingest
+# Long-running worker: live websocket → outbox → DB. Internal-only (no port).
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "python scripts/run_ingest.py"
+restartPolicyType = "ALWAYS"
+numReplicas = 1
+sleepApplication = false
+# No healthcheck path: worker doesn't expose HTTP. Railway falls back to
+# process liveness (PID 1 must stay alive).

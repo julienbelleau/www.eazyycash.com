@@ -49,6 +49,18 @@ test-cov:  ## pytest with coverage (must be >= 80%)
 
 ci: lint typecheck test  ## everything CI runs
 
+api:  ## run the FastAPI dev server
+	poetry run uvicorn janus.api.main:app --reload --host 0.0.0.0 --port 8000
+
+docker-build:  ## build the production image locally
+	docker build -t janus:dev .
+
+docker-run-api:  ## run the API in the production image
+	docker run --rm -it -p 8000:8000 --env-file .env janus:dev
+
+bootstrap-tenant:  ## create a local tenant + admin key (requires DB up)
+	poetry run python scripts/admin_keys.py create-tenant --name dev --plan free
+
 clean:  ## drop caches, dist, eggs
 	rm -rf .mypy_cache .ruff_cache .pytest_cache .coverage htmlcov build dist *.egg-info
 	find . -type d -name __pycache__ -exec rm -rf {} +

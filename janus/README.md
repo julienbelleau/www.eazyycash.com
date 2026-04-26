@@ -12,6 +12,12 @@ period (60d/strategy), and gate metrics in the plan.
 > upgrades that take it from "institutional" to "top-tier quant pod" quality.
 > Each strategy folder has a `RATIONALE.md` answering the five mandatory
 > design-justification questions.
+>
+> **SaaS / Railway deployment** is documented in [`SAAS.md`](./SAAS.md): five
+> Railway services (`janus-api`, `janus-migrate`, `janus-ingest`, `janus-paper`,
+> `timescaledb`) defined by [`Dockerfile`](./Dockerfile),
+> [`railway.toml`](./railway.toml), and [`deploy/railway/`](./deploy/railway).
+> The API speaks OpenAPI at `/docs`; auth is HMAC-hashed bearer keys (`jns_…`).
 
 ---
 
@@ -27,6 +33,8 @@ period (60d/strategy), and gate metrics in the plan.
 | 4 — Regime Detector | 5-state Gaussian HMM, BOCPD-on-vol-of-vol transition detector, confidence-weighted regime router (gate × correlation × drawdown), macro feature panel, counterfactual evaluation hook | `janus/regime/` | ✅ |
 | Engine + execution | Strategy multiplexer, OrderManager (idempotent state machine), smart router (TWAP + Almgren-Chriss), reconciliation, slippage tracker, kill-switch registry, correlation monitor, drawdown manager | `janus/engine/`, `janus/execution/`, `janus/risk/` | ✅ |
 | Monitoring | Prometheus metric registry, Telegram alerter (httpx-driven), append-only JSONL trade journal, daily report script, paper runner | `janus/monitoring/`, `scripts/{run_paper,daily_report}.py` | ✅ |
+| SaaS / API | FastAPI control plane, HMAC-hashed bearer auth, tenants + API keys, rate limiting + CORS, OpenAPI at `/docs`, admin CLI | `janus/api/`, `janus/saas/`, `scripts/admin_keys.py` | ✅ |
+| Railway deployment | Production Dockerfile, `railway.toml`, per-service configs, custom TimescaleDB image | `Dockerfile`, `railway.toml`, `deploy/railway/` | ✅ |
 | Backfill 3y | Resumable Binance backfill (klines / funding / OI / trades) | `scripts/backfill_historical.py` | ⏳ run-required |
 | 60-day paper × 3 strategies | Live websocket → engine wiring | `scripts/run_paper.py` | 🚧 wiring needed |
 | Live deployment | VPS provisioning, kill-switch monitoring, capital ramp 5% → 100% over 90d | — | ⏳ post-paper |

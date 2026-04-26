@@ -1,0 +1,31 @@
+# Don't bake test/dev junk into the image.
+.git
+.github
+.venv
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.hypothesis
+htmlcov
+__pycache__
+**/__pycache__
+*.pyc
+*.pyo
+
+# Local data + journals
+paper-journal/
+data/raw/
+data/snapshots/
+*.parquet
+
+# Tests + dev configs aren't needed in the runtime image
+tests/
+docker-compose.yml
+.env
+.env.local
+
+# Editor files
+.vscode
+.idea
+*.swp
+.DS_Store
